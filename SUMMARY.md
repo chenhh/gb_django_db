@@ -26,7 +26,10 @@
 
 ## 資料庫 <a href="#database" id="database"></a>
 
-* [關聯式資料庫](database/guan-lian-shi-zi-liao-ku.md)
-* [SQL](database/sql.md)
+* [關聯式資料庫](database/relational-db.md)
+* [SQL](database/sql/README.md)
+  * [資料庫正規化](database/sql/db-normalization.md)
 * [PostgreSQL](database/postgresql/README.md)
+  * [postgresql.conf](database/postgresql/postgresql.conf.md)
+  * [pg\_hba.conf](database/postgresql/pg\_hba.conf.md)
   * [分割資料表(partitioning)](database/postgresql/fen-ge-zi-liao-biao-partitioning.md)
