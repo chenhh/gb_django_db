@@ -1,8 +1,10 @@
 # nginx
 
-## 設定檔路徑
+## 頂層設定檔路徑
 
 nginx 的設定檔名為 `nginx.conf`，會依據安裝方式導致被放置的路徑不同，可以透過 `nginx -t` 來查詢。&#x20;
+
+Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
 
 ```bash
 nginx -t
@@ -11,14 +13,41 @@ nginx -t
 # 表示設定檔路徑為 /usr/local/etc/nginx/nginx.conf
 ```
 
-## 設定檔
+其中`nginx.conf`是最頂層的設定檔。另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
-* Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
-* 另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
+```nginx
+user  nginx;
+worker_processes  auto;
 
-### nginx.conf
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
 
-config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：simple directive 及 block directive。
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+```
+
+config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：<mark style="background-color:green;">simple directive</mark> 及 <mark style="background-color:green;">block directive</mark>。
 
 * simple directive 要以分號 ; 結尾。
 * 而 block directive 會有一組大括號 {}，包著其他的 directive（simple 或是 block）。

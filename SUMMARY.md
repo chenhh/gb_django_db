@@ -15,10 +15,6 @@
   * [遷移(migration)](django/mo-xing-model/qian-yi-migration.md)
   * [遷移(migration)](django/mo-xing-model/qian-yi-migration-1.md)
   * [分割資料表(table partitioning)](django/mo-xing-model/fen-ge-zi-liao-biao-table-partitioning.md)
-* [wsgi](django/wsgi/README.md)
-  * [uwsgi](django/wsgi/uwsgi.md)
-  * [gunicorn](django/wsgi/gunicorn.md)
-* [nginx](django/nginx.md)
 
 ## Django-extension
 
@@ -33,3 +29,10 @@
   * [postgresql.conf](database/postgresql/postgresql.conf.md)
   * [pg\_hba.conf](database/postgresql/pg\_hba.conf.md)
   * [分割資料表(partitioning)](database/postgresql/fen-ge-zi-liao-biao-partitioning.md)
+
+## Web伺服器 <a href="#web-server" id="web-server"></a>
+
+* [wsgi](web-server/wsgi/README.md)
+  * [uwsgi](web-server/wsgi/uwsgi.md)
+  * [gunicorn](web-server/wsgi/gunicorn.md)
+* [nginx](web-server/nginx.md)
