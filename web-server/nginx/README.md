@@ -13,6 +13,20 @@ nginx -t
 # 表示設定檔路徑為 /usr/local/etc/nginx/nginx.conf
 ```
 
+在`/etc/nginx`資料夾中的檔案如下：
+
+```bash
+drwxr-xr-x 1 root root   24 Dec 20 20:13 conf.d
+-rw-r--r-- 1 root root 1007 Oct 24 13:46 fastcgi_params
+-rw-r--r-- 1 root root 5349 Oct 24 13:46 mime.types
+lrwxrwxrwx 1 root root   22 Oct 24 16:10 modules -> /usr/lib/nginx/modules
+-rw-r--r-- 1 root root  648 Oct 24 16:10 nginx.conf
+-rw-r--r-- 1 root root  636 Oct 24 13:46 scgi_params
+-rw-r--r-- 1 root root  664 Oct 24 13:46 uwsgi_params
+```
+
+其中{fastcgi, scgi,uwsgi}.params是Nginx在組態對應的代理服務時會根據 params 檔案的組態向伺服器傳遞變數；
+
 其中`nginx.conf`是最頂層的設定檔。另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
 ```nginx
@@ -34,6 +48,7 @@ http {
                       '$status $body_bytes_sent "$http_referer" '
                       '"$http_user_agent" "$http_x_forwarded_for"';
 
+    # 設定存取記錄的資料夾              
     access_log  /var/log/nginx/access.log  main;
 
     sendfile        on;
@@ -343,7 +358,7 @@ events {
 
 編輯檔案 `/etc/sysctl.conf`。
 
-* `sys.fs.file-max` 最大開檔上限， sysctl -w fs.file-max=50000 (可以暫時測試重開機後會消失)。
+* `sys.fs.file-max` 最大開檔上限， `sysctl -w fs.file-max=50000` (可以暫時測試重開機後會消失)。
 * `net.core.somaxconn`: 能被 nginx queue 接受的最大連線數，可以設定成 512，超過還需要設定 listen 的 backlog 參數，因為除了 FreeBSD, DragonFly BSD, macOS 其他預設值是 511。
 * `net.core.netdev_max_backlog`: 網路卡的 backlog，加大會增加效能，但不瞭解網路卡的極限就容易出現錯誤。
 * nofile 也跟開檔數有關，在 `/etc/security/limits.conf`設定。
