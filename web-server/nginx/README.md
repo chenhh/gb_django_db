@@ -33,6 +33,7 @@ lrwxrwxrwx 1 root root   22 Oct 24 16:10 modules -> /usr/lib/nginx/modules
 user  nginx;
 worker_processes  auto;
 
+# error log在全域定義路徑, 記錄notice等級以上的事件
 error_log  /var/log/nginx/error.log notice;
 pid        /var/run/nginx.pid;
 
@@ -62,23 +63,48 @@ http {
 }
 ```
 
-config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：<mark style="background-color:green;">simple directive</mark> 及 <mark style="background-color:green;">block directive</mark>。
+config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：簡單指令(<mark style="background-color:green;">simple directive)</mark> 及 區塊指令(<mark style="background-color:green;">block directive)</mark>。
 
-* simple directive 要以分號 ; 結尾。
-* 而 block directive 會有一組大括號 {}，包著其他的 directive（simple 或是 block）。
+* 簡單指令要以分號 ; 結尾。
+* 而區塊指令會有一組大括號 {}，包著其他的指令（巢狀，simple 或是 block）。
 
-因此設定檔中顯眼的 http、server 及 location 都是 block directive。它們有著從屬關係。而最底層的 block directive 只會有兩種：<mark style="color:red;">http 及 event，稱之為 main context</mark>。
+因此設定檔中顯眼的 http、server 及 location 都是區塊指令。它們有著從屬關係。而最頂層的區塊指令 只會有兩種：<mark style="color:red;">http 及 event，稱之為主要上下文( main context)</mark>。
 
 ```nginx
+event{}
 http {
-# server 一定在 http 裡面
-server {
-# location 一定在 server 裡面
-location {}
+    # server 一定在 http 裡面
+    # 虛擬主機1
+    server {
+    
+        # location 一定在 server 裡面
+        location {}
+    }
+    # 虛擬主機2
+    server{
+        location {}
+    }
 }
 ```
 
-## Server block
+* events { } ：events 上下文用於設定關於 NGINX 如何在一般等級處理請求的全域組態。一個有效的組態檔案中只能有一個 events 上下文。&#x20;
+* http { }：http 上下文用於定義有關伺服器將如何處理 HTTP 和 HTTPS 請求的組態。一個有效的組態檔案中只能有一個 http 上下文。
+* server { } ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。
+* main：main 上下文是組態檔案本身。在前面提到的三個上下文之外編寫的任何內容都在 main上下文中。
+
+## 全域(main)區塊
+
+在此區塊中的[error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, or emerg。
+
+## event區塊
+
+Linux下預設使用[epoll](https://nginx.org/en/docs/events.html)方式連接。
+
+## http區塊
+
+
+
+## Server區塊
 
 當設定檔中有多個 `server {...}` 區塊，nginx選擇區塊與其中的listen指令有關。
 
@@ -93,7 +119,7 @@ location {}
 
 首先 Nginx會先檢查 IP:Port 的匹配。 選擇順序為 listen 有指定IP (如 10.1.1.1) listen 無指定或使用0.0.0.0。第二 比對 server\_name 當第一個IP:Port匹配檢查完後，發現有多個符合的結果，才會繼續比對。
 
-## Location block
+## Location區塊
 
 在nginx內，`$host_name`沒有帶Port號，`$server_name`有帶Port號。
 
@@ -267,6 +293,10 @@ server_name www.synology.me
 
 ## Nginx Reverse Proxy
 
+
+
+<figure><img src="../../.gitbook/assets/nginx-reverse-proxy.png" alt="" width="221"><figcaption><p>反向代理</p></figcaption></figure>
+
 反向代理 (Reverse Proxy): 網域往往只能連到一台入口主機，但當我們後端有很多網站及服務分配到多台主機時，這時候就需要透過路徑上的代理來轉發還有配置附載平衡。
 
 * `least_conn` 選擇最少連線數，連線進來時會把 Request 導向連線數較少的 Server。
@@ -377,6 +407,12 @@ Gixy 是一個分析 Nginx 配置的自動化缺陷檢測工具，主要目標�
 
 * [nginx offical site](https://www.nginx.com/)
 * [\[docker\] nginx offical image](https://hub.docker.com/\_/nginx)
+* [https://nginx.org/en/docs/](https://nginx.org/en/docs/)
+* [https://www.w3schools.cn/nginx/](https://www.w3schools.cn/nginx/)
+* [https://www.w3cschool.cn/nginxsysc/](https://www.w3cschool.cn/nginxsysc/)
+* [https://www.zhihu.com/org/nginxkai-yuan-she-qu/answers](https://www.zhihu.com/org/nginxkai-yuan-she-qu/answers)
+* [https://blog.redis.com.cn/doc/](https://blog.redis.com.cn/doc/)
+* [https://docshome.gitbook.io/nginx-docs/](https://docshome.gitbook.io/nginx-docs/)
 
 SSL
 
