@@ -87,20 +87,46 @@ http {
 }
 ```
 
-* events { } ：events 上下文用於設定關於 NGINX 如何在一般等級處理請求的全域組態。一個有效的組態檔案中只能有一個 events 上下文。&#x20;
-* http { }：http 上下文用於定義有關伺服器將如何處理 HTTP 和 HTTPS 請求的組態。一個有效的組態檔案中只能有一個 http 上下文。
-* server { } ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。
-* main：main 上下文是組態檔案本身。在前面提到的三個上下文之外編寫的任何內容都在 main上下文中。
+* <mark style="color:red;">main</mark>：main 上下文是組態檔案本身。在前面提到的三個上下文之外編寫的任何內容都在 main上下文中。
+* <mark style="background-color:red;">events { }</mark> ：events 上下文用於設定關於 NGINX 如何在一般等級處理請求的全域組態。一個有效的組態檔案中只能有一個 events 上下文。&#x20;
+* <mark style="background-color:red;">http { }</mark>：http 上下文用於定義有關伺服器將如何處理 HTTP 和 HTTPS 請求的組態。一個有效的組態檔案中只能有一個 http 上下文。
+* <mark style="background-color:red;">server { }</mark> ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。
 
 ## 全域(main)區塊
 
-在此區塊中的[error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, or emerg。
+* [user](https://nginx.org/en/docs/ngx\_core\_module.html#user)是指定行程的使用者。
+* [worker\_processes](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_processes)是工作行程的數量，可用auto設定即可。
+* [error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, or emerg。
+* [pid](https://nginx.org/en/docs/ngx\_core\_module.html#pid)設定工作行程ID(PID)記錄檔存放的位置。
+
+通常全域設定以上部份，其它部份就是event與http區塊的設定。
 
 ## event區塊
 
 Linux下預設使用[epoll](https://nginx.org/en/docs/events.html)方式連接。
 
+一般只會設定[worker\_connections](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_connections)。設定工作行程可以連接的最大同時連線數。
+
+```nginx
+events {
+ worker_connections 1024;
+ use epoll;
+}
+```
+
 ## http區塊
+
+nginx的組態檔案僅允許只有一個http區塊。
+
+* [include](https://nginx.org/en/docs/ngx\_core\_module.html#include)指令，告訴nginx網站組態檔案放置的地方。
+  * mime.types檔案中，使用[types](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#types)區塊將[MIME](https://ithelp.ithome.com.tw/articles/10271086)資源對應到指定的資源。
+* [default\_type](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#default\_type)指定預設的MIME類型。
+* [log\_format](https://nginx.org/en/docs/http/ngx\_http\_log\_module.html#log\_format)指定在log檔中記錄的格式。
+* [access\_log](https://nginx.org/en/docs/http/ngx\_http\_log\_module.html#access\_log)指定記錄檔的存放路徑、格式（把定義的log\_format 跟在後面）和快取大小；如果不想啟用日誌則access\_log off ;\[[參考資料](https://lanjingling.github.io/2016/03/14/nginx-access-log/)]
+* [sendfile](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#sendfile)指定是否使用sendfile系統呼叫來傳輸檔案。sendfile系統呼叫在兩個檔案描述符之間直接傳遞資料(完全在核心中操作)，從而避免了資料在核心緩衝區和使用者緩衝區之間的複製，操作效率很高，被稱之為零複製(硬碟—>核心緩衝區—>協議引擎)。\[[參考資料](https://www.jianshu.com/p/70e1c396c320)]。
+* [tcp\_nopush](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#tcp\_nopush)(預設off)必須在sendfile啟用時才會生效，啟用時會先將資料放入緩衝區，待存滿時再發送封包，主要提升網路封包的使用效率。\[[參考資料](https://blog.csdn.net/Leon\_Jinhai\_Sun/article/details/121054627)]。
+* [keepalive\_timeout](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#keepalive\_timeout): 多久(秒)要切掉連線。
+* [gzip](https://nginx.org/en/docs/http/ngx\_http\_gzip\_module.html#gzip): (預設off)傳輸檔案時是否壓縮。
 
 
 
@@ -413,6 +439,7 @@ Gixy 是一個分析 Nginx 配置的自動化缺陷檢測工具，主要目標�
 * [https://www.zhihu.com/org/nginxkai-yuan-she-qu/answers](https://www.zhihu.com/org/nginxkai-yuan-she-qu/answers)
 * [https://blog.redis.com.cn/doc/](https://blog.redis.com.cn/doc/)
 * [https://docshome.gitbook.io/nginx-docs/](https://docshome.gitbook.io/nginx-docs/)
+* [\[知乎\]萬字長文！一次性弄懂 Nginx 處理 HTTP 請求的 11 個階段](https://zhuanlan.zhihu.com/p/142654187)。
 
 SSL
 
