@@ -134,14 +134,12 @@ nginx的組態檔案僅允許只有一個http區塊。
 
 當設定檔中有多個 `server {...}` 區塊，nginx選擇區塊與其中的listen指令有關。
 
-* 預設的 listen 通常是 `listen 80 default_server`;&#x20;
-*   但是一個完整的描述方法是: `listen IP:PORT;`而缺少的部分(不管是缺少IP還是Port號)Nginx會自動使用預設值補齊。&#x20;
-
-    * 缺少IP 如 `listen 80`;，Nginx會自動補0.0.0.0，變成 : `listen 0.0.0.0:80`;
-    * 缺少Port 如 `listen 10.1.1.1`;，Nginx會自動補80 Port號，變成 : `listen 10.1.1.1:80`;
-    * 兩個都缺 也就是沒有使用 listen ，nginx會自動補上 `listen 0.0.0.0:80`;
-
-
+* 預設的 [listen ](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#listen)通常是 `listen 80 default_server`;&#x20;
+  * 但是一個完整的描述方法是: `listen IP:PORT;`而缺少的部分(不管是缺少IP還是Port號)Nginx會自動使用預設值補齊。&#x20;
+  * 缺少IP 如 `listen 80`;，Nginx會自動補0.0.0.0，變成 : `listen 0.0.0.0:80`;
+  * 缺少Port 如 `listen 10.1.1.1`;，Nginx會自動補80 Port號，變成 : `listen 10.1.1.1:80`;
+  * 兩個都缺 也就是沒有使用 listen ，nginx會自動補上 `listen 0.0.0.0:80`;
+  * default\_server指的是如果連線為指定的ip:port時，預設使用此虛擬主機。可以定義預設的 server 去處理一些沒有匹配到 server\_name 的請求，如果沒有顯式定義，則會選取第一個定義的 server 作為 default\_server。
 
 首先 Nginx會先檢查 IP:Port 的匹配。 選擇順序為 listen 有指定IP (如 10.1.1.1) listen 無指定或使用0.0.0.0。第二 比對 server\_name 當第一個IP:Port匹配檢查完後，發現有多個符合的結果，才會繼續比對。
 
