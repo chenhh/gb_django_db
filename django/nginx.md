@@ -126,20 +126,100 @@ nginx -t
 * Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
 * 另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
-### nginx.conf
+```nginx
+user  nginx;
+# 預設為process，不是thread
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+
+events {
+    use epoll;
+    worker_connections  1024;
+}
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+```
+
+### worker\_processes設定
+
+預先產生的行程數量，一般設置為auto即可，可使用`ps -ef | grep nginx`指令查看。
+
+容器中可能沒有ps指令，可安裝`apt-get update && apt-get install -y procps`。
+
+```bash
+root@6ea974697f67:~# ps -ef|grep nginx
+root         1     0  0 Jun25 ?        00:00:00 nginx: master process nginx -g daemon off;
+nginx       68     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       69     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       70     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       71     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       72     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       73     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       74     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       75     1  0 02:46 ?        00:00:00 nginx: worker process
+nginx       76     1  0 02:46 ?        00:00:00 nginx: worker process
+```
+
+### 主要上下文(main context)內容
 
 設定檔是由一連串的指令(directive)所組成的。 指令針對特定的部分作設定，分為兩種：簡單指令(<mark style="background-color:green;">simple directive)</mark> 及 區塊指令(<mark style="background-color:green;">block directive)</mark>。
+
+#### 常用簡單指令
+
+* [user](https://nginx.org/en/docs/ngx\_core\_module.html#user)是指定行程的使用者。
+* [worker\_processes](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_processes)是工作行程的數量，可用auto設定即可。
+* [error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, 或emerg。
+* [pid](https://nginx.org/en/docs/ngx\_core\_module.html#pid)設定工作行程ID(PID)記錄檔存放的位置。
+
+常用的全域簡單為以上部份，其它部份就是event與http區塊的設定。
 
 因此設定檔中顯眼的 http、server 及 location 都是區塊指令。它們有著從屬關係。而最頂層的區塊指令只會有兩種：<mark style="color:red;">http 及 event，稱之為主要(全域)上下文(main context)</mark>。
 
 ```nginx
+events {
+     worker_connections 1024;
+     use epoll;
+}
 http {
-# server 一定在 http 裡面
-server {
-# location 一定在 server 裡面
-location {}
+    # server 一定在 http 裡面
+    server {
+    # location 一定在 server 裡面
+        location {}
+    }
 }
 ```
+
+### event區塊
+
+event區塊指定了影響連線處理的指令。
+
+Linux下預設(kernel >=2.6)使用[epoll](https://nginx.org/en/docs/events.html)方式連線。
+
+一般只會設定[worker\_connections](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_connections)。設定工作行程可以連線的最大同時連線數。此連線數包括所有連線（例如與代理伺服器的連線等），而不僅僅是與客戶端的連線。另一個注意事項是，實際同時連線數不能超過當前開啟檔的最大數量限制，該限制可以通過worker\_rlimit\_nofile進行更改。
+
+
 
 ## Server block
 
