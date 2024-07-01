@@ -162,9 +162,11 @@ http {
 }
 ```
 
-### worker\_processes設定
+### user與worker\_processes設定
 
 預先產生的行程數量，一般設置為auto即可，可使用`ps -ef | grep nginx`指令查看。
+
+可看到除了pid為1的行程的使用者為root之外，其它行程的使用者均為nginx。
 
 容器中可能沒有ps指令，可安裝`apt-get update && apt-get install -y procps`。
 
