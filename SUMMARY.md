@@ -15,6 +15,7 @@
   * [遷移(migration)](django/model/qian-yi-migration.md)
   * [遷移(migration)](django/model/qian-yi-migration-1.md)
   * [分割資料表(table partitioning)](django/model/fen-ge-zi-liao-biao-table-partitioning.md)
+* [python](django/python.md)
 
 ## Django-extension
 
