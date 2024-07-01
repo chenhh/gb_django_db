@@ -63,6 +63,10 @@ lrwxrwxrwx 1 root root   22 Oct 24 16:10 modules -> /usr/lib/nginx/modules
 
 其中`{fastcgi, scgi,uwsgi}.params`是nginx在組態對應的代理服務時會根據 params 檔案的組態向伺服器傳遞變數。
 
+### 設定檔區塊層級
+
+<figure><img src="../../.gitbook/assets/nginx_block_configuration.png" alt="" width="375"><figcaption><p>nginx設定檔區塊層級(<a href="https://segmentfault.com/a/1190000040717509/en">來源</a>)。</p></figcaption></figure>
+
 其中`nginx.conf`是最頂層的設定檔。另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
 ```nginx
