@@ -1,5 +1,24 @@
 # nginx
 
+## docker安裝
+
+從docker hub可查詢[nginx](https://hub.docker.com/\_/nginx)目前最新版本，如果要抓取特定版本使用`docker pull nginx:1.27.0`，或者直接以`docker pull nginx` 抓取最新版本。
+
+下載完成後，可使用`docker images` 查看已抓取的映像版本。
+
+建議新增使用者nginx專用管理nginx伺服器，記得要加入docker群組。
+
+* 新增使用者且指定群組：`sudo useradd -g docker nginx`。預設建立家目錄在`/home/nginx`。
+* 修改密碼：`sudo passwd nginx`。
+
+### nginx容器的設定
+
+nginx容器內的設定檔可用host設定檔覆寫：`-v ${SERVER_DIR}/my_nginx.conf:/etc/nginx/conf.d/default.conf`。
+
+容器內部的資料夾也可以用host資料夾：`-v ${SERVER_DIR}/my_static/:/opt/static/` 。
+
+容器的log檔(access.log與error.log)預設是在容器中，只要刪除容器就會消失，如果要永久保存要掛載到host資料夾：`-v ${SERVER_LOG_DIR}:/var/log/nginx/`。
+
 ## 頂層設定檔路徑
 
 nginx 的設定檔名為 `nginx.conf`，會依據安裝方式導致被放置的路徑不同，可以透過 `nginx -t` 來查詢。&#x20;
