@@ -73,13 +73,15 @@ pgbench 所產出的，TPS (Transactions per second)，越高越好。「includi
 
 測試的過程中，主要的瓶頸就在系統的IO，如果需要減少IO的負荷，最直接的方法就是把fsync關閉，但是這樣就會在掉電的情況下，可能會丟失部分資料。
 
-以下為eva01主機使用postgresql 16.1(docker參數未調整，使用內網ip)的結果：
+以下為eva01主機使用postgresql 16.1(docker參數未調整，使用內網ip)的結果，很明顯使用ext4會比btrfs更好。
 
-| 參數集               | TPS(不含建立連線) | TPS(-C, 含建立連線) |
-| ----------------- | ----------- | -------------- |
-| 預設參數              | 4349        | 584            |
-| pgtune的參數         | 4507        |                |
-| pgtune, fsync=off | 5780        | 549            |
+| 參數集                         | TPS(不含建立連線) |
+| --------------------------- | ----------- |
+| 預設參數(btrfs)                 | 4349        |
+| pgtune的參數(btrfs)            | 4507        |
+| pgtune, fsync=off(btrfs)    | 5780        |
+| pgtune的參數(ext4)             | 5577        |
+| pgtune的參數,  fsync=off(ext4) | 6702        |
 
 可在psql或在pgadmin中，使用`SHOW ALL` 查看資料庫參數是否正確設定。
 

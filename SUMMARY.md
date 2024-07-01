@@ -35,6 +35,6 @@
 * [wsgi](web-server/wsgi/README.md)
   * [uwsgi](web-server/wsgi/uwsgi.md)
   * [gunicorn](web-server/wsgi/gunicorn.md)
-* [nginx](web-server/nginx/README.md)
+* [nginx](django/nginx.md)
   * [nginx https設定](web-server/nginx/nginx-https-settings.md)
   * [ab](web-server/nginx/ab.md)

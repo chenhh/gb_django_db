@@ -1,44 +1,8 @@
 # nginx
 
-## docker安裝
-
-從docker hub可查詢[nginx](https://hub.docker.com/\_/nginx)目前最新版本，如果要抓取特定版本使用`docker pull nginx:1.27.0`，或者直接以`docker pull nginx` 抓取最新版本。
-
-下載完成後，可使用`docker images` 查看已抓取的映像版本。
-
-建議新增使用者nginx專用管理nginx伺服器，記得要加入docker群組。
-
-* 新增使用者且指定群組：`sudo useradd -g docker nginx`。預設建立家目錄在`/home/nginx`。
-* 修改密碼：`sudo passwd nginx`。
-
-### nginx容器的設定
-
-nginx容器內的設定檔可用host設定檔覆寫：`-v ${SERVER_DIR}/my_nginx.conf:/etc/nginx/conf.d/default.conf`。
-
-可先將容器內的設定檔拷貝出來再修改：`docker run --rm --entrypoint=cat nginx /etc/nginx/nginx.conf > /${SERVER_DIR}/my_nginx.conf`。
-
-容器內部的資料夾也可以用host資料夾：`-v ${SERVER_DIR}/my_static/:/opt/static/` 。
-
-容器的log檔(access.log與error.log)預設是在容器中，只要刪除容器就會消失，如果要永久保存要掛載到host資料夾：`-v ${SERVER_LOG_DIR}:/var/log/nginx/`。
-
-## 頂層設定檔
-
-首先進入nginx容器內：`docker exec -it nx /bin/bash`。
-
-### 啟動、停止和重新載入組態
-
-命令：`nginx -s ${SIGNAL}`。
-
-* `stop`：快速關機。
-* `quit`：正常關機。
-* `reload`：重新載入設定檔。
-* `reopen`：重新開啟記錄檔。
-
-### 查詢設定檔路徑
+## 設定檔路徑
 
 nginx 的設定檔名為 `nginx.conf`，會依據安裝方式導致被放置的路徑不同，可以透過 `nginx -t` 來查詢。&#x20;
-
-Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
 
 ```bash
 nginx -t
@@ -47,159 +11,45 @@ nginx -t
 # 表示設定檔路徑為 /usr/local/etc/nginx/nginx.conf
 ```
 
-### 設定檔資料夾內容
+## 設定檔
 
-在`/etc/nginx`資料夾中的檔案如下：
+* Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
+* 另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
-```bash
-drwxr-xr-x 1 root root   24 Dec 20 20:13 conf.d
--rw-r--r-- 1 root root 1007 Oct 24 13:46 fastcgi_params
--rw-r--r-- 1 root root 5349 Oct 24 13:46 mime.types
-lrwxrwxrwx 1 root root   22 Oct 24 16:10 modules -> /usr/lib/nginx/modules
--rw-r--r-- 1 root root  648 Oct 24 16:10 nginx.conf
--rw-r--r-- 1 root root  636 Oct 24 13:46 scgi_params
--rw-r--r-- 1 root root  664 Oct 24 13:46 uwsgi_params
-```
+### nginx.conf
 
-其中`{fastcgi, scgi,uwsgi}.params`是nginx在組態對應的代理服務時會根據 params 檔案的組態向伺服器傳遞變數。
+config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：simple directive 及 block directive。
 
-### 設定檔區塊層級
+* simple directive 要以分號 ; 結尾。
+* 而 block directive 會有一組大括號 {}，包著其他的 directive（simple 或是 block）。
 
-<figure><img src="../../.gitbook/assets/nginx_block_configuration.png" alt="" width="375"><figcaption><p>nginx設定檔區塊層級(<a href="https://segmentfault.com/a/1190000040717509/en">來源</a>)。</p></figcaption></figure>
-
-其中`nginx.conf`是最頂層的設定檔。另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
-
-### 全域(main)區塊內容
-
-存在於`nginx.conf`中。
+因此設定檔中顯眼的 http、server 及 location 都是 block directive。它們有著從屬關係。而最底層的 block directive 只會有兩種：<mark style="color:red;">http 及 event，稱之為 main context</mark>。
 
 ```nginx
-user  nginx;
-worker_processes  auto;
-
-# error log在全域定義路徑, 記錄notice等級以上的事件
-error_log  /var/log/nginx/error.log notice;
-pid        /var/run/nginx.pid;
-
-events {
-    worker_connections  1024;
-}
-
 http {
-    include       /etc/nginx/mime.types;
-    default_type  application/octet-stream;
-
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
-
-    # 設定存取記錄的資料夾              
-    access_log  /var/log/nginx/access.log  main;
-
-    sendfile        on;
-    #tcp_nopush     on;
-
-    keepalive_timeout  65;
-
-    #gzip  on;
-
-    include /etc/nginx/conf.d/*.conf;
+# server 一定在 http 裡面
+server {
+# location 一定在 server 裡面
+location {}
 }
 ```
 
-設定檔是由一連串的指令(directive)所組成的。 指令針對特定的部分作設定，分為兩種：簡單指令(<mark style="background-color:green;">simple directive)</mark> 及 區塊指令(<mark style="background-color:green;">block directive)</mark>。
-
-* 簡單指令要以分號 ; 結尾。
-* 而區塊指令會有一組大括號 {}，包著其他的指令（巢狀，simple 或是 block）。
-
-因此設定檔中顯眼的 http、server 及 location 都是區塊指令。它們有著從屬關係。而最頂層的區塊指令只會有兩種：<mark style="color:red;">http 及 event，稱之為主要上下文( main context)</mark>。
-
-```nginx
-event{}
-http {
-    # server 一定在 http 裡面
-    # 虛擬主機1
-    server {
-        listen      80;
-        server_name example.org www.example.org;
-        ...
-    }
-    # 虛擬主機2
-    server {
-        listen      80;
-        server_name example.net www.example.net;
-        ...
-    }
-    # 虛擬主機3
-    server {
-        listen      80;
-        server_name example.com www.example.com;
-        ...
-    }
-}
-```
-
-* `main`：main 上下文是組態檔案本身。在前面提到的三個上下文之外編寫的任何內容都在 main上下文中。
-* <mark style="background-color:red;">events { }</mark> ：events 上下文用於設定關於 NGINX 如何在一般等級處理請求的全域組態。一個有效的組態檔案中只能有一個 events 上下文。&#x20;
-* <mark style="background-color:red;">http { }</mark>：http 上下文用於定義有關伺服器將如何處理 HTTP 和 HTTPS 請求的組態。一個有效的組態檔案中只能有一個 http 上下文。
-* <mark style="background-color:red;">server { }</mark> ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。<mark style="color:blue;">相異server上下文由它們偵聽的埠和伺服器名稱來區分</mark>。一旦 nginx 決定處理哪個 server 請求，它就會根據 server 上下文內定義的 location 指令的引數測試請求標頭中指定的 URI。
-
-## 全域(main)區塊設定
-
-### 常用簡單指令
-
-* [user](https://nginx.org/en/docs/ngx\_core\_module.html#user)是指定行程的使用者。
-* [worker\_processes](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_processes)是工作行程的數量，可用auto設定即可。
-* [error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, 或emerg。
-* [pid](https://nginx.org/en/docs/ngx\_core\_module.html#pid)設定工作行程ID(PID)記錄檔存放的位置。
-
-常用的全域設定為以上部份，其它部份就是event與http區塊的設定。
-
-## event區塊
-
-event區塊指定了影響連線處理的指令。
-
-Linux下預設使用[epoll](https://nginx.org/en/docs/events.html)方式連接。
-
-一般只會設定[worker\_connections](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_connections)。設定工作行程可以連接的最大同時連線數。此連線數包括所有連線（例如與代理伺服器的連線等），而不僅僅是與客戶端的連線。另一個注意事項是，實際同時連線數不能超過當前開啟檔的最大數量限制，該限制可以通過worker\_rlimit\_nofile進行更改。
-
-```nginx
-events {
- worker_connections 1024;
- use epoll;
-}
-```
-
-## http區塊
-
-nginx的組態檔案僅允許只有一個http區塊。
-
-* [include](https://nginx.org/en/docs/ngx\_core\_module.html#include)指令，告訴nginx網站組態檔案放置的地方。
-  * mime.types檔案中，使用[types](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#types)區塊將[MIME](https://ithelp.ithome.com.tw/articles/10271086)資源對應到指定的資源。
-* [default\_type](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#default\_type)指定預設的MIME類型。
-* [log\_format](https://nginx.org/en/docs/http/ngx\_http\_log\_module.html#log\_format)指定在log檔中記錄的格式。
-* [access\_log](https://nginx.org/en/docs/http/ngx\_http\_log\_module.html#access\_log)指定記錄檔的存放路徑、格式（把定義的log\_format 跟在後面）和快取大小；如果不想啟用日誌則access\_log off ;\[[參考資料](https://lanjingling.github.io/2016/03/14/nginx-access-log/)]
-* [sendfile](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#sendfile)指定是否使用sendfile系統呼叫來傳輸檔案。sendfile系統呼叫在兩個檔案描述符之間直接傳遞資料(完全在核心中操作)，從而避免了資料在核心緩衝區和使用者緩衝區之間的複製，操作效率很高，被稱之為零複製(硬碟—>核心緩衝區—>協議引擎)。\[[參考資料](https://www.jianshu.com/p/70e1c396c320)]。
-* [tcp\_nopush](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#tcp\_nopush)(預設off)必須在sendfile啟用時才會生效，啟用時會先將資料放入緩衝區，待存滿時再發送封包，主要提升網路封包的使用效率。\[[參考資料](https://blog.csdn.net/Leon\_Jinhai\_Sun/article/details/121054627)]。
-* [keepalive\_timeout](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#keepalive\_timeout): 多久(秒)要切掉連線。
-* [gzip](https://nginx.org/en/docs/http/ngx\_http\_gzip\_module.html#gzip): (預設off)傳輸檔案時是否壓縮。
-
-
-
-## Server區塊
+## Server block
 
 當設定檔中有多個 `server {...}` 區塊，nginx選擇區塊與其中的listen指令有關。
 
-* 預設的 [listen ](https://nginx.org/en/docs/http/ngx\_http\_core\_module.html#listen)通常是 `listen 80 default_server`;&#x20;
-  * 但是一個完整的描述方法是: `listen IP:PORT;`而缺少的部分(不管是缺少IP還是Port號)Nginx會自動使用預設值補齊。&#x20;
-  * 缺少IP 如 `listen 80`;，Nginx會自動補0.0.0.0，變成 : `listen 0.0.0.0:80`;
-  * 缺少Port 如 `listen 10.1.1.1`;，Nginx會自動補80 Port號，變成 : `listen 10.1.1.1:80`;
-  * 兩個都缺 也就是沒有使用 listen ，nginx會自動補上 `listen 0.0.0.0:80`;
-  * default\_server指的是如果連線為指定的ip:port時，預設使用此虛擬主機。可以定義預設的 server 去處理一些沒有匹配到 server\_name 的請求，如果沒有顯式定義，則會選取第一個定義的 server 作為 default\_server。
+* 預設的 listen 通常是 `listen 80 default_server`;&#x20;
+*   但是一個完整的描述方法是: `listen IP:PORT;`而缺少的部分(不管是缺少IP還是Port號)Nginx會自動使用預設值補齊。&#x20;
+
+    * 缺少IP 如 `listen 80`;，Nginx會自動補0.0.0.0，變成 : `listen 0.0.0.0:80`;
+    * 缺少Port 如 `listen 10.1.1.1`;，Nginx會自動補80 Port號，變成 : `listen 10.1.1.1:80`;
+    * 兩個都缺 也就是沒有使用 listen ，nginx會自動補上 `listen 0.0.0.0:80`;
+
+
 
 首先 Nginx會先檢查 IP:Port 的匹配。 選擇順序為 listen 有指定IP (如 10.1.1.1) listen 無指定或使用0.0.0.0。第二 比對 server\_name 當第一個IP:Port匹配檢查完後，發現有多個符合的結果，才會繼續比對。
 
-## Location區塊
+## Location block
 
 在nginx內，`$host_name`沒有帶Port號，`$server_name`有帶Port號。
 
@@ -373,10 +223,6 @@ server_name www.synology.me
 
 ## Nginx Reverse Proxy
 
-
-
-<figure><img src="../../.gitbook/assets/nginx-reverse-proxy.png" alt="" width="221"><figcaption><p>反向代理</p></figcaption></figure>
-
 反向代理 (Reverse Proxy): 網域往往只能連到一台入口主機，但當我們後端有很多網站及服務分配到多台主機時，這時候就需要透過路徑上的代理來轉發還有配置附載平衡。
 
 * `least_conn` 選擇最少連線數，連線進來時會把 Request 導向連線數較少的 Server。
@@ -468,7 +314,7 @@ events {
 
 編輯檔案 `/etc/sysctl.conf`。
 
-* `sys.fs.file-max` 最大開檔上限， `sysctl -w fs.file-max=50000` (可以暫時測試重開機後會消失)。
+* `sys.fs.file-max` 最大開檔上限， sysctl -w fs.file-max=50000 (可以暫時測試重開機後會消失)。
 * `net.core.somaxconn`: 能被 nginx queue 接受的最大連線數，可以設定成 512，超過還需要設定 listen 的 backlog 參數，因為除了 FreeBSD, DragonFly BSD, macOS 其他預設值是 511。
 * `net.core.netdev_max_backlog`: 網路卡的 backlog，加大會增加效能，但不瞭解網路卡的極限就容易出現錯誤。
 * nofile 也跟開檔數有關，在 `/etc/security/limits.conf`設定。
@@ -487,13 +333,6 @@ Gixy 是一個分析 Nginx 配置的自動化缺陷檢測工具，主要目標�
 
 * [nginx offical site](https://www.nginx.com/)
 * [\[docker\] nginx offical image](https://hub.docker.com/\_/nginx)
-* [https://nginx.org/en/docs/](https://nginx.org/en/docs/)
-* [https://www.w3schools.cn/nginx/](https://www.w3schools.cn/nginx/)
-* [https://www.w3cschool.cn/nginxsysc/](https://www.w3cschool.cn/nginxsysc/)
-* [https://www.zhihu.com/org/nginxkai-yuan-she-qu/answers](https://www.zhihu.com/org/nginxkai-yuan-she-qu/answers)
-* [https://blog.redis.com.cn/doc/](https://blog.redis.com.cn/doc/)
-* [https://docshome.gitbook.io/nginx-docs/](https://docshome.gitbook.io/nginx-docs/)
-* [\[知乎\]萬字長文！一次性弄懂 Nginx 處理 HTTP 請求的 11 個階段](https://zhuanlan.zhihu.com/p/142654187)。
 
 SSL
 
