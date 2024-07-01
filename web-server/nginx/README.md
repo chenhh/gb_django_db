@@ -15,13 +15,26 @@
 
 nginx容器內的設定檔可用host設定檔覆寫：`-v ${SERVER_DIR}/my_nginx.conf:/etc/nginx/conf.d/default.conf`。
 
+可先將容器內的設定檔拷貝出來再修改：`docker run --rm --entrypoint=cat nginx /etc/nginx/nginx.conf > /${SERVER_DIR}/my_nginx.conf`。
+
 容器內部的資料夾也可以用host資料夾：`-v ${SERVER_DIR}/my_static/:/opt/static/` 。
 
 容器的log檔(access.log與error.log)預設是在容器中，只要刪除容器就會消失，如果要永久保存要掛載到host資料夾：`-v ${SERVER_LOG_DIR}:/var/log/nginx/`。
 
-## 頂層設定檔路徑
+## 頂層設定檔
 
 首先進入nginx容器內：`docker exec -it nx /bin/bash`。
+
+### 啟動、停止和重新載入組態
+
+命令：`nginx -s ${SIGNAL}`。
+
+* `stop`：快速關機。
+* `quit`：正常關機。
+* `reload`：重新載入設定檔。
+* `reopen`：重新開啟記錄檔。
+
+### 查詢設定檔路徑
 
 nginx 的設定檔名為 `nginx.conf`，會依據安裝方式導致被放置的路徑不同，可以透過 `nginx -t` 來查詢。&#x20;
 
@@ -33,6 +46,8 @@ nginx -t
 # nginx: configuration file /usr/local/etc/nginx/nginx.conf test is successful
 # 表示設定檔路徑為 /usr/local/etc/nginx/nginx.conf
 ```
+
+### 設定檔資料夾內容
 
 在`/etc/nginx`資料夾中的檔案如下：
 
@@ -46,7 +61,7 @@ lrwxrwxrwx 1 root root   22 Oct 24 16:10 modules -> /usr/lib/nginx/modules
 -rw-r--r-- 1 root root  664 Oct 24 13:46 uwsgi_params
 ```
 
-其中{fastcgi, scgi,uwsgi}.params是Nginx在組態對應的代理服務時會根據 params 檔案的組態向伺服器傳遞變數；
+其中`{fastcgi, scgi,uwsgi}.params`是nginx在組態對應的代理服務時會根據 params 檔案的組態向伺服器傳遞變數。
 
 其中`nginx.conf`是最頂層的設定檔。另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
@@ -84,12 +99,12 @@ http {
 }
 ```
 
-config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：簡單指令(<mark style="background-color:green;">simple directive)</mark> 及 區塊指令(<mark style="background-color:green;">block directive)</mark>。
+設定檔是由一連串的指令(directive)所組成的。 指令針對特定的部分作設定，分為兩種：簡單指令(<mark style="background-color:green;">simple directive)</mark> 及 區塊指令(<mark style="background-color:green;">block directive)</mark>。
 
 * 簡單指令要以分號 ; 結尾。
 * 而區塊指令會有一組大括號 {}，包著其他的指令（巢狀，simple 或是 block）。
 
-因此設定檔中顯眼的 http、server 及 location 都是區塊指令。它們有著從屬關係。而最頂層的區塊指令 只會有兩種：<mark style="color:red;">http 及 event，稱之為主要上下文( main context)</mark>。
+因此設定檔中顯眼的 http、server 及 location 都是區塊指令。它們有著從屬關係。而最頂層的區塊指令只會有兩種：<mark style="color:red;">http 及 event，稱之為主要上下文( main context)</mark>。
 
 ```nginx
 event{}
@@ -97,21 +112,32 @@ http {
     # server 一定在 http 裡面
     # 虛擬主機1
     server {
-    
+        listen 80;
+        root /data/up1;
         # location 一定在 server 裡面
-        location {}
+        location / {}
     }
     # 虛擬主機2
     server{
-        location {}
+        listen 8080;
+        root /data/up2;
+        # 代理伺服器
+        location / {
+            proxy_pass http://localhost:8080;
+        }
+
+        # 將影像請求對映到 /data/images 目錄下的檔
+        location ~ \.(gif|jpg|png)$ {
+            root /data/images;
+        }
     }
 }
 ```
 
-* <mark style="color:red;">main</mark>：main 上下文是組態檔案本身。在前面提到的三個上下文之外編寫的任何內容都在 main上下文中。
+* `main`：main 上下文是組態檔案本身。在前面提到的三個上下文之外編寫的任何內容都在 main上下文中。
 * <mark style="background-color:red;">events { }</mark> ：events 上下文用於設定關於 NGINX 如何在一般等級處理請求的全域組態。一個有效的組態檔案中只能有一個 events 上下文。&#x20;
 * <mark style="background-color:red;">http { }</mark>：http 上下文用於定義有關伺服器將如何處理 HTTP 和 HTTPS 請求的組態。一個有效的組態檔案中只能有一個 http 上下文。
-* <mark style="background-color:red;">server { }</mark> ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。
+* <mark style="background-color:red;">server { }</mark> ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。<mark style="color:blue;">相異server上下文由它們偵聽的埠和伺服器名稱來區分</mark>。一旦 nginx 決定處理哪個 server 請求，它就會根據 server 上下文內定義的 location 指令的引數測試請求標頭中指定的 URI。
 
 ## 全域(main)區塊
 
