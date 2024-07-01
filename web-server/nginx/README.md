@@ -69,6 +69,10 @@ lrwxrwxrwx 1 root root   22 Oct 24 16:10 modules -> /usr/lib/nginx/modules
 
 其中`nginx.conf`是最頂層的設定檔。另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
+### 全域(main)區塊內容
+
+存在於`nginx.conf`中。
+
 ```nginx
 user  nginx;
 worker_processes  auto;
@@ -116,24 +120,21 @@ http {
     # server 一定在 http 裡面
     # 虛擬主機1
     server {
-        listen 80;
-        root /data/up1;
-        # location 一定在 server 裡面
-        location / {}
+        listen      80;
+        server_name example.org www.example.org;
+        ...
     }
     # 虛擬主機2
-    server{
-        listen 8080;
-        root /data/up2;
-        # 代理伺服器
-        location / {
-            proxy_pass http://localhost:8080;
-        }
-
-        # 將影像請求對映到 /data/images 目錄下的檔
-        location ~ \.(gif|jpg|png)$ {
-            root /data/images;
-        }
+    server {
+        listen      80;
+        server_name example.net www.example.net;
+        ...
+    }
+    # 虛擬主機3
+    server {
+        listen      80;
+        server_name example.com www.example.com;
+        ...
     }
 }
 ```
@@ -143,20 +144,24 @@ http {
 * <mark style="background-color:red;">http { }</mark>：http 上下文用於定義有關伺服器將如何處理 HTTP 和 HTTPS 請求的組態。一個有效的組態檔案中只能有一個 http 上下文。
 * <mark style="background-color:red;">server { }</mark> ： server 上下文巢狀在 http 上下文中，用於在單個主機內組態特定的虛擬伺服器。在巢狀在 http 上下文中的有效組態檔案中可以有多個 server 上下文。每個“伺服器”上下文都被認為是一個虛擬主機。<mark style="color:blue;">相異server上下文由它們偵聽的埠和伺服器名稱來區分</mark>。一旦 nginx 決定處理哪個 server 請求，它就會根據 server 上下文內定義的 location 指令的引數測試請求標頭中指定的 URI。
 
-## 全域(main)區塊
+## 全域(main)區塊設定
+
+### 常用簡單指令
 
 * [user](https://nginx.org/en/docs/ngx\_core\_module.html#user)是指定行程的使用者。
 * [worker\_processes](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_processes)是工作行程的數量，可用auto設定即可。
-* [error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, or emerg。
+* [error\_log](https://nginx.org/en/docs/ngx\_core\_module.html#error\_log)是記錄所有的錯誤，等級為debug, info, notice, warn, error, crit, alert, 或emerg。
 * [pid](https://nginx.org/en/docs/ngx\_core\_module.html#pid)設定工作行程ID(PID)記錄檔存放的位置。
 
-通常全域設定以上部份，其它部份就是event與http區塊的設定。
+常用的全域設定為以上部份，其它部份就是event與http區塊的設定。
 
 ## event區塊
 
+event區塊指定了影響連線處理的指令。
+
 Linux下預設使用[epoll](https://nginx.org/en/docs/events.html)方式連接。
 
-一般只會設定[worker\_connections](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_connections)。設定工作行程可以連接的最大同時連線數。
+一般只會設定[worker\_connections](https://nginx.org/en/docs/ngx\_core\_module.html#worker\_connections)。設定工作行程可以連接的最大同時連線數。此連線數包括所有連線（例如與代理伺服器的連線等），而不僅僅是與客戶端的連線。另一個注意事項是，實際同時連線數不能超過當前開啟檔的最大數量限制，該限制可以通過worker\_rlimit\_nofile進行更改。
 
 ```nginx
 events {
