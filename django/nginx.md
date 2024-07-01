@@ -1,6 +1,40 @@
 # nginx
 
-## 設定檔路徑
+### docker安裝
+
+從docker hub可查詢[nginx](https://hub.docker.com/\_/nginx)目前最新版本，如果要抓取特定版本使用`docker pull nginx:1.27.0`，或者直接以`docker pull nginx` 抓取最新版本。
+
+下載完成後，可使用`docker images` 檢視已抓取的映像版本。
+
+建議新增使用者nginx專用管理nginx伺服器，記得要加入docker群組。
+
+* 新增使用者且指定群組：`sudo useradd -g docker nginx`。預設建立家目錄在`/home/nginx`。
+* 修改密碼：`sudo passwd nginx`。
+
+#### nginx容器的設定
+
+nginx容器內的設定檔可用host設定檔覆寫：`-v ${SERVER_DIR}/my_nginx.conf:/etc/nginx/conf.d/default.conf`。
+
+可先將容器內的設定檔拷貝出來再修改：`docker run --rm --entrypoint=cat nginx /etc/nginx/nginx.conf > /${SERVER_DIR}/my_nginx.conf`。
+
+容器內部的資料夾也可以用host資料夾：`-v ${SERVER_DIR}/my_static/:/opt/static/` 。
+
+容器的log檔(access.log與error.log)預設是在容器中，只要刪除容器就會消失，如果要永久儲存要掛載到host資料夾：`-v ${SERVER_LOG_DIR}:/var/log/nginx/`。
+
+### 常用nginx命令
+
+首先進入nginx容器內：`docker exec -it nx /bin/bash`。
+
+#### 啟動、停止和重新載入組態
+
+命令：`nginx -s ${SIGNAL}`。
+
+* `stop`：快速關機。
+* `quit`：正常關機。
+* `reload`：重新載入設定檔。
+* `reopen`：重新開啟記錄檔。
+
+#### 查詢設定檔路徑
 
 nginx 的設定檔名為 `nginx.conf`，會依據安裝方式導致被放置的路徑不同，可以透過 `nginx -t` 來查詢。&#x20;
 
@@ -11,19 +45,16 @@ nginx -t
 # 表示設定檔路徑為 /usr/local/etc/nginx/nginx.conf
 ```
 
-## 設定檔
+### main全域設定檔
 
 * Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
 * 另外在 `/etc/nginx/conf.d/*.conf` 則會放置不同域名的設定檔。然後在主設定檔中的 http context 加入一行 `include /etc/nginx/conf.d/*.conf;`即可將不同域名的設定引入，達成方便管理與修改不同域名設定的特性。
 
 ### nginx.conf
 
-config 檔是由一連串的 directive 所組成的。directive 針對特定的部分作設定，分為兩種：simple directive 及 block directive。
+設定檔是由一連串的指令(directive)所組成的。 指令針對特定的部分作設定，分為兩種：簡單指令(<mark style="background-color:green;">simple directive)</mark> 及 區塊指令(<mark style="background-color:green;">block directive)</mark>。
 
-* simple directive 要以分號 ; 結尾。
-* 而 block directive 會有一組大括號 {}，包著其他的 directive（simple 或是 block）。
-
-因此設定檔中顯眼的 http、server 及 location 都是 block directive。它們有著從屬關係。而最底層的 block directive 只會有兩種：<mark style="color:red;">http 及 event，稱之為 main context</mark>。
+因此設定檔中顯眼的 http、server 及 location 都是區塊指令。它們有著從屬關係。而最頂層的區塊指令只會有兩種：<mark style="color:red;">http 及 event，稱之為主要(全域)上下文(main context)</mark>。
 
 ```nginx
 http {
