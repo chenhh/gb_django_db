@@ -21,6 +21,8 @@ nginx容器內的設定檔可用host設定檔覆寫：`-v ${SERVER_DIR}/my_nginx
 
 ## 頂層設定檔路徑
 
+首先進入nginx容器內：`docker exec -it nx /bin/bash`。
+
 nginx 的設定檔名為 `nginx.conf`，會依據安裝方式導致被放置的路徑不同，可以透過 `nginx -t` 來查詢。&#x20;
 
 Nginx 的主要設定檔通常會放置在 `/etc/nginx/nginx.conf`。
