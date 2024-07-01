@@ -20,7 +20,7 @@ $ docker run -d --name some-postgres -v \
   -c 'config_file=/etc/postgresql/postgresql.conf'
 ```
 
-## 優化參數選項
+## File location
 
 | 選項                             | 預設值   | 說明                                                                     | 是否優化 | 原因                                       |
 | ------------------------------ | ----- | ---------------------------------------------------------------------- | ---- | ---------------------------------------- |
@@ -102,6 +102,8 @@ docker run -p 127.0.0.1:5050:80 \
 ```
 
 pgbench 所產出的TPS (Transactions per second)，越高越好。「including」和「excluding」則分別代表了「including connections establishing」及「excluding connections establishing」，也就是是否採計建立連線所需時間。
+
+## 參考資料
 
 ## 參考資料
 
