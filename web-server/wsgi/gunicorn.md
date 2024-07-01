@@ -10,6 +10,10 @@ gunicorn -w 2 --bind 0.0.0.0:8000 myproject.wsgi
 
 但是在這裡使用 Gunicorn 伺服器時，靜態（static）檔案會出現找不到的問題，這是正常的。這裡我們同樣檢查 http://server\_domain\_or\_IP:8000/ 這個頁面，除了靜態檔案之外是否都可以正常運作，若正常就表示沒問題。
 
+gunicorn --worker-class=gevent --worker-connections=1000 --workers=3 main:app
+
+worker-connections 是對於 gevent worker 類的特殊設定。(2\*CPU)+1 仍然是建議的workers 數量。
+
 ## Gunicorn 各個 worker type 適合的情境
 
 根據底層運作的原理可以將 worker 分成三種類型：
